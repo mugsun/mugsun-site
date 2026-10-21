@@ -19,6 +19,7 @@ jobs:
   gitleaks:
     name: Secret scan (gitleaks, full history)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -38,8 +39,9 @@ jobs:
   notify:
     name: Report scheduled failure
     needs: [gitleaks]
-    if: failure() && github.event_name == 'schedule'
+    if: (failure() || cancelled()) && github.event_name == 'schedule'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       issues: write
     env:
@@ -50,10 +52,13 @@ jobs:
       - name: Open or update issue
         run: |
           title="每日安全扫描失败"
-          num=$(gh issue list --state open --search "in:title $title" --json number --jq '.[0].number')
-          body="每日安全扫描失败，请开源维护官查看：$RUN_URL"
+          label="security-scan"
+          gh label create "$label" --color B60205 --description "每日安全扫描失败告警" --force
+          num=$(gh issue list --state open --label "$label" --json number,title \
+            --jq "map(select(.title == \"$title\")) | .[0].number // empty")
+          body="每日安全扫描失败或被取消，请开源维护官查看：$RUN_URL"
           if [ -n "$num" ]; then
             gh issue comment "$num" --body "$body"
           else
-            gh issue create --title "$title" --body "$body"
+            gh issue create --title "$title" --label "$label" --body "$body"
           fi
