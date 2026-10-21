@@ -26,6 +26,12 @@ git -c user.name=mugsun -c user.email=bydongxin@gmail.com commit
 git push origin <sha>:refs/heads/<分支>
 ```
 
+不推 `HEAD`，例如不用 `git push origin HEAD:main`。
+
+Mac mini 上的 zsh 会把 `$S:refs/...` 里的 `:r` 当成变量修饰符，把 refspec 改坏。
+
+所以要么直接写 SHA 字面量，要么写成 `"${S}:refs/heads/<分支>"`。
+
 推 main 前要核对完整 SHA 已经审过，审查结论里写的就是这个 SHA。
 
 再用 `gh run list --commit <完整 SHA>` 核对检查结果。短 SHA 可能查不到结果，不算核对。
